@@ -35,45 +35,59 @@ export function FileUpload() {
         </label>
 
         {files.length > 0 && (
-          <div className="w-full grid grid-cols-2 md:grid-cols-3 gap-4">
-            {files.map((file) => (
-              <div
-                key={file.id}
-                className="relative aspect-square rounded-lg overflow-hidden border"
-              >
-                <Image
-                  src={file.preview}
-                  alt={file.file.name}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                  loader={({ src }) => src}
-                />
-                <button
-                  onClick={() => removeFile(file.id)}
-                  className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+          <>
+            <div className="w-full grid grid-cols-2 md:grid-cols-3 gap-4">
+              {files.map((file) => (
+                <div
+                  key={file.id}
+                  className="relative aspect-square rounded-lg overflow-hidden border"
                 >
-                  <X className="h-4 w-4 text-white" />
-                </button>
-              </div>
-            ))}
-          </div>
+                  <Image
+                    src={file.preview}
+                    alt={file.file.name}
+                    fill
+                    className="object-cover"
+                    unoptimized
+                    loader={({ src }) => src}
+                  />
+                  <button
+                    onClick={() => removeFile(file.id)}
+                    className="absolute top-2 right-2 p-1 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-4 w-4 text-white" />
+                  </button>
+                  {file.url && (
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 p-2">
+                      <a 
+                        href={file.url} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-xs text-white hover:underline truncate block"
+                      >
+                        View on DDC
+                      </a>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            <Button
+              onClick={handleUpload}
+              disabled={isUploading}
+              className="w-full"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="animate-spin" />
+                  Uploading to DDC...
+                </>
+              ) : (
+                <>Upload to Cere DDC</>
+              )}
+            </Button>
+          </>
         )}
-
-        <Button
-          onClick={handleUpload}
-          disabled={isUploading || files.length === 0}
-          className="w-full max-w-xs"
-        >
-          {isUploading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Uploading...
-            </>
-          ) : (
-            'Upload Files'
-          )}
-        </Button>
       </div>
     </div>
   );

@@ -2,11 +2,13 @@
 
 import { useState, useCallback } from 'react';
 import { useToast } from './use-toast';
+import { uploadToDdc } from '@/actions/fileUpload';
 
 interface FileWithPreview {
   id: string;
   file: File;
   preview: string;
+  url?: string; // DDC URL
 }
 
 export default function useFileUpload() {
@@ -16,7 +18,6 @@ export default function useFileUpload() {
 
   const convertHeicToJpeg = async (file: File): Promise<string> => {
     try {
-      // Dynamically import heic2any only when needed
       const heic2any = (await import('heic2any')).default;
       const convertedBlob = await heic2any({
         blob: file,
@@ -24,16 +25,55 @@ export default function useFileUpload() {
         quality: 0.9,
       });
 
-      // Handle both single blob and array of blobs
       const jpeg = Array.isArray(convertedBlob)
         ? convertedBlob[0]
         : convertedBlob;
       return URL.createObjectURL(jpeg);
     } catch (error) {
       console.error('Error converting HEIC:', error);
-      throw error;  
+      throw error;
     }
   };
+
+  const handleUpload = useCallback(async () => {
+    if (files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const uploadPromises = files.map(async (file) => {
+        // Convert file to buffer
+        const arrayBuffer = await file.file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Upload to DDC
+        const result = await uploadToDdc(buffer);
+        return {
+          ...file,
+          url: result.url,
+        };
+      });
+
+      const uploadedFiles = await Promise.all(uploadPromises);
+
+      toast({
+        title: 'Success',
+        description: 'Files uploaded successfully to Cere DDC',
+      });
+
+      // Clean up previews and update state with DDC URLs
+      files.forEach((file) => URL.revokeObjectURL(file.preview));
+      setFiles(uploadedFiles);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload files to Cere DDC',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  }, [files, toast]);
 
   const handleFileChange = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,32 +130,6 @@ export default function useFileUpload() {
       return prevFiles.filter((file) => file.id !== id);
     });
   }, []);
-
-  const handleUpload = useCallback(async () => {
-    if (files.length === 0) return;
-
-    setIsUploading(true);
-    try {
-      // Upload logic will be implemented later
-      toast({
-        title: 'Success',
-        description: 'Files uploaded successfully',
-      });
-
-      // Clean up previews and reset state
-      files.forEach((file) => URL.revokeObjectURL(file.preview));
-      setFiles([]);
-    } catch (error) {
-      console.log(error);
-      toast({
-        title: 'Error',
-        description: 'Failed to upload files',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  }, [files, toast]);
 
   // Clean up previews when component unmounts
   useCallback(() => {
